@@ -44,6 +44,7 @@ def load_model_and_data():
     model.fit(x, y_encoded)
     
     return model, le, cols.tolist(), training
+
 @st.cache_data
 def load_helper_data():
     description_list = {}
@@ -60,35 +61,15 @@ def load_helper_data():
             if len(row) > 1:
                 precautionDictionary[row[0]] = row[1:]
 
-    symptom_synonyms = {   # FIXED name and indentation
-        # Original synonyms
-        "stomach ache": "stomach_pain",
-        "belly pain": "stomach_pain",
-        "tummy pain": "stomach_pain",
-        "loose motion": "diarrhoea",
-        "motions": "diarrhoea",
-        "high temperature": "high_fever",
-        "temperature": "mild_fever",
-        "feaver": "mild_fever",
-        "coughing": "cough",
-        "throat pain": "sore_throat",
-        "cold": "chills",
-        "breathing issue": "breathlessness",
-        "shortness of breath": "breathlessness",
-        "body ache": "muscle_pain",
-        # --- NEW ADDITIONS TO FIX THE PROBLEM ---
-        "itchy": "itching",
-        "skin bumps": "skin_rash",
-        "bumpy skin": "skin_rash",
-        "rash on skin": "skin_rash",
-        # --- OTHER USEFUL ADDITIONS ---
-        "runny nose": "runny_nose",
-        "head pain": "headache",
-        "feeling tired": "fatigue",
-        "tiredness": "fatigue",
-        "throwing up": "vomiting",
-        "feeling sick": "nausea",
-        "bloating ": "Gastric issues"
+    symptom_synonyms = {
+        "stomach ache": "stomach_pain", "belly pain": "stomach_pain",
+        "loose motion": "diarrhoea", "high temperature": "high_fever",
+        "temperature": "mild_fever", "coughing": "cough", "throat pain": "sore_throat",
+        "breathing issue": "breathlessness", "body ache": "muscle_pain",
+        "itchy": "itching", "skin bumps": "skin_rash", "bumpy skin": "skin_rash",
+        "runny nose": "runny_nose", "head pain": "headache", "feeling tired": "fatigue",
+        "throwing up": "vomiting", "feeling sick": "nausea",
+        "fever": "mild_fever", # <-- ADD THIS LINE
     }
     return description_list, precautionDictionary, symptom_synonyms
 
