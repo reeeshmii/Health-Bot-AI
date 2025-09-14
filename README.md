@@ -33,19 +33,7 @@ Python 3.8 or higher
 
 A Google Gemini API Key. You can get one from Google AI Studio.
 
-2. Installation
-Clone the repository to your local machine:
-
-git clone [https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git](https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git)
-cd YOUR_REPOSITORY_NAME
-
-Install the required Python packages:
-
-pip install -r requirements.txt
-
-(Note: You will need to create a requirements.txt file by running pip freeze > requirements.txt in your terminal after installing all packages like streamlit, pandas, etc.)
-
-3. API Key Setup (Crucial)
+2. API Key Setup (Crucial)
 This application requires a Google Gemini API key to function. The most secure way to handle this is using Streamlit's built-in secrets management.
 
 Create a new folder in your project's root directory named .streamlit.
@@ -58,7 +46,7 @@ GEMINI_API_KEY = "YOUR_API_KEY_HERE"
 
 The application will automatically load this key.
 
-4. Running the Application
+3. Running the Application
 Once the setup is complete, run the following command in your terminal from the project's root directory:
 
 streamlit run app.py
