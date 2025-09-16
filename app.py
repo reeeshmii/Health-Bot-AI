@@ -128,7 +128,6 @@ if 'api_key_validated' not in st.session_state:
 # Show the API key input form if the key hasn't been validated
 if not st.session_state.api_key_validated:
     st.subheader("Enter Your Google Gemini API Key")
-    st.markdown("You can get a free API key from [Google AI Studio](https://aistudio.google.com/).")
     
     api_key_input = st.text_input("Gemini API Key", type="password", key="api_key_input")
     
@@ -237,3 +236,4 @@ else:
     except Exception as e:
         st.error(f"An unexpected error occurred: {e}")
         st.button("Reload App")
+
