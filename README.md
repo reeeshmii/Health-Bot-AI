@@ -1,4 +1,4 @@
-🩺 Helio
+🩺 Healio
 An intelligent, conversational health chatbot that leverages machine learning and a Large Language Model (LLM) to provide preliminary insights based on user-described symptoms. This project features a user-friendly web interface built with Streamlit.
 
 (Suggestion: Replace the placeholder above with a real screenshot of your running Streamlit application!)
