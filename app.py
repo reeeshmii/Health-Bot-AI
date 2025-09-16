@@ -69,7 +69,7 @@ def load_helper_data():
         "itchy": "itching", "skin bumps": "skin_rash", "bumpy skin": "skin_rash",
         "runny nose": "runny_nose", "head pain": "headache", "feeling tired": "fatigue",
         "throwing up": "vomiting", "feeling sick": "nausea",
-        "fever": "mild_fever", # <-- ADD THIS LINE
+        "fever": "mild_fever", "bloating": "gastric issue",# <-- ADD THIS LINE
     }
     return description_list, precautionDictionary, symptom_synonyms
 
@@ -110,87 +110,130 @@ def predict_disease(symptoms_list, model, label_encoder, feature_names):
     return disease, confidence
 
 # --- 4. STREAMLIT UI ---
-
-model, le, cols, training_df = load_model_and_data()
-description_list, precautionDictionary, symptom_synonyms = load_helper_data()
-
-st.set_page_config(page_title="Health Insight Bot", page_icon="🩺")
-st.title("🩺 Health Insight Bot")
-st.info("Disclaimer: This AI is not a medical professional. Please consult a doctor for any health concerns.")
-
-if 'stage' not in st.session_state:
-    st.session_state.stage = 'initial'
-
-if st.session_state.stage == 'initial':
-    name = st.text_input("What is your name?")
-    symptoms_input_str = st.text_area("Describe your symptoms:", height=100)
+# --- Sidebar ---
+with st.sidebar:
+    st.header("About")
+    st.markdown("""
+    This Health Insight Bot combines a machine learning model (Random Forest) with a Large Language Model (Google's Gemini) to provide preliminary insights based on user-described symptoms.
+    """)
+    st.warning("**Disclaimer:** This is not a medical professional. Always consult a doctor for any health concerns.")
     
-    if st.button("Analyze Symptoms"):
-        if name and symptoms_input_str:
-            st.session_state.name = name
-            st.session_state.symptoms = extract_symptoms(symptoms_input_str, cols, symptom_synonyms)
-            
-            if st.session_state.symptoms:
-                st.session_state.stage = 'follow_up'
+# --- Main App Logic ---
+st.title("🩺 Healio")
+
+# Use a session state variable to track if the API key has been validated
+if 'api_key_validated' not in st.session_state:
+    st.session_state.api_key_validated = False
+
+# Show the API key input form if the key hasn't been validated
+if not st.session_state.api_key_validated:
+    st.subheader("Enter Your Google Gemini API Key")
+    st.markdown("You can get a free API key from [Google AI Studio](https://aistudio.google.com/).")
+    
+    api_key_input = st.text_input("Gemini API Key", type="password", key="api_key_input")
+    
+    if st.button("Submit Key", type="primary"):
+        if api_key_input:
+            try:
+                genai.configure(api_key=api_key_input)
+                # A quick test to see if the key is valid by listing models
+                genai.list_models()
+                st.session_state.api_key_validated = True
+                st.session_state.api_key = api_key_input
+                st.success("API Key accepted!")
                 st.rerun()
-            else:
-                st.error("Could not detect valid symptoms. Please describe them differently.")
+            except Exception as e:
+                st.error(f"Invalid API Key or configuration error. Please check your key.")
         else:
-            st.warning("Please enter your name and describe your symptoms.")
-
-if st.session_state.stage == 'follow_up':
-    st.write(f"Hello {st.session_state.name}!")
-    st.info(f"Detected Symptoms: **{', '.join(st.session_state.symptoms)}**")
-    
-    disease, _ = predict_disease(st.session_state.symptoms, model, le, cols)
-    disease_row = training_df[training_df['prognosis'] == disease].iloc[0]
-    potential_symptoms = [sym for sym in cols if disease_row[sym] == 1 and sym not in st.session_state.symptoms]
-    
-    st.markdown("---")
-    st.write("To refine the analysis, please answer a few more questions:")
-    
-    with st.form("follow_up_form"):
-        for sym in potential_symptoms[:4]:
-            st.radio(
-                f"Do you also have **{sym.replace('_', ' ')}**?",
-                ("Yes", "No"),
-                key=f'q_{sym}',
-                index=None,  # This is the fix! It makes the default unselected.
-                horizontal=True
-            )
+            st.warning("Please enter your API key.")
+else:
+    # --- Main Chatbot Interface (runs only if API key is valid) ---
+    try:
+        genai.configure(api_key=st.session_state.api_key)
         
-        submitted = st.form_submit_button("Get Final Result")
-        if submitted:
-            for sym in potential_symptoms[:4]:
-                if st.session_state.get(f'q_{sym}') == 'Yes':
-                    st.session_state.symptoms.append(sym)
-            st.session_state.stage = 'result'
-            st.rerun()
-
-if st.session_state.stage == 'result':
-    st.title("Analysis Result")
-    
-    with st.spinner("Analyzing and generating your personalized response..."):
-        disease, confidence = predict_disease(st.session_state.symptoms, model, le, cols)
-        precautions = precautionDictionary.get(disease, [])
-        description = description_list.get(disease, "No description available.")
+        model, le, cols, training_df = load_model_and_data()
+        description_list, precautionDictionary, symptom_synonyms = load_helper_data()
         
-        final_prompt = (
-            f"You are an empathetic AI healthcare assistant. A user named {st.session_state.name} has received a prediction. "
-            f"Explain the result gently and clearly. List the precautions using bullet points. "
-            f"End with a strong disclaimer to consult a doctor. Do not offer a diagnosis.\n\n"
-            f"--- Information to use ---\n"
-            f"Name: {st.session_state.name}\n"
-            f"Predicted Condition: {disease}\n"
-            f"Model Confidence: {confidence}%\n"
-            f"Description: {description}\n"
-            f"Precautions: {', '.join(precautions)}\n"
-        )
-        
-        final_response = get_llm_response(final_prompt)
-        st.markdown(final_response)
+        st.markdown("Please describe your symptoms below to get a preliminary analysis.")
 
-    if st.button("Start Over"):
-        st.session_state.clear()
-        st.rerun()
+        if 'stage' not in st.session_state:
+            st.session_state.stage = 'initial'
 
+        if st.session_state.stage == 'initial':
+            with st.container(border=True):
+                st.subheader("Step 1: Tell Us How You Feel")
+                name = st.text_input("What is your name?", key="user_name")
+                symptoms_input_str = st.text_area("Describe your symptoms:", height=100, placeholder="e.g., I have a headache and a runny nose", key="symptoms_input")
+                
+                if st.button("Analyze Symptoms", type="primary"):
+                    if name and symptoms_input_str:
+                        st.session_state.name = name
+                        st.session_state.symptoms = extract_symptoms(symptoms_input_str, cols, symptom_synonyms)
+                        
+                        if st.session_state.symptoms:
+                            st.session_state.stage = 'follow_up'
+                            st.rerun()
+                        else:
+                            st.error("Could not detect valid symptoms. Please describe them differently.")
+                    else:
+                        st.warning("Please enter your name and describe your symptoms.")
+
+        if st.session_state.stage == 'follow_up':
+            st.write(f"Hello **{st.session_state.name}**!")
+            st.success(f"Detected Symptoms: **{', '.join(st.session_state.symptoms)}**")
+            
+            disease, _ = predict_disease(st.session_state.symptoms, model, le, cols)
+            disease_row = training_df[training_df['prognosis'] == disease].iloc[0]
+            potential_symptoms = [sym for sym in cols if disease_row[sym] == 1 and sym not in st.session_state.symptoms]
+            
+            with st.container(border=True):
+                st.subheader("Step 2: Answer a Few More Questions")
+                st.write("This will help refine the analysis.")
+                
+                with st.form("follow_up_form"):
+                    for sym in potential_symptoms[:4]:
+                        st.radio(f"Do you also have **{sym.replace('_', ' ')}**?", ("Yes", "No"), key=f'q_{sym}', index=None, horizontal=True)
+                    
+                    submitted = st.form_submit_button("Get Final Result", type="primary")
+                    if submitted:
+                        for sym in potential_symptoms[:4]:
+                            if st.session_state.get(f'q_{sym}') == 'Yes':
+                                st.session_state.symptoms.append(sym)
+                        st.session_state.stage = 'result'
+                        st.rerun()
+
+        if st.session_state.stage == 'result':
+            with st.container(border=True):
+                st.subheader("Step 3: Analysis Result")
+                
+                with st.spinner("Analyzing and generating your personalized response..."):
+                    disease, confidence = predict_disease(st.session_state.symptoms, model, le, cols)
+                    precautions = precautionDictionary.get(disease, [])
+                    description = description_list.get(disease, "No description available.")
+                    
+                    final_prompt = (
+                        f"You are an empathetic AI healthcare assistant. A user named {st.session_state.name} has received a prediction. "
+                        f"Explain the result gently and clearly. Use markdown for formatting. Create a main header for the predicted condition. "
+                        f"Then use subheaders for 'Description' and 'Suggested Precautions'. List the precautions using bullet points. "
+                        f"End with a strong, bolded disclaimer to consult a doctor. Do not offer a diagnosis.\n\n"
+                        f"--- Information to use ---\n"
+                        f"Name: {st.session_state.name}\n"
+                        f"Predicted Condition: {disease}\n"
+                        f"Model Confidence: {confidence}%\n"
+                        f"Description: {description}\n"
+                        f"Precautions: {', '.join(precautions)}\n"
+                    )
+                    
+                    final_response = get_llm_response(final_prompt)
+                    st.markdown(final_response)
+
+            if st.button("Start Over"):
+                # Clear all session data except the API key
+                for key in list(st.session_state.keys()):
+                    if key != 'api_key_validated' and key != 'api_key':
+                        del st.session_state[key]
+                st.session_state.stage = 'initial'
+                st.rerun()
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {e}")
+        st.button("Reload App")
