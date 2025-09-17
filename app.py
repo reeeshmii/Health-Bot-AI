@@ -25,7 +25,7 @@ except (AttributeError, TypeError):
     st.error("GEMINI_API_KEY not found. Please set it as an environment variable or a Streamlit secret.")
     st.stop()
 
-# --- 2. CACHED FUNCTIONS (FOR PERFORMANCE) ---
+# --- 2. CACHED FUNCTIONS---
 
 @st.cache_resource
 def load_model_and_data():
@@ -69,7 +69,7 @@ def load_helper_data():
         "itchy": "itching", "skin bumps": "skin_rash", "bumpy skin": "skin_rash",
         "runny nose": "runny_nose", "head pain": "headache", "feeling tired": "fatigue",
         "throwing up": "vomiting", "feeling sick": "nausea",
-        "fever": "mild_fever", "bloating": "gastric issue",# <-- ADD THIS LINE
+        "fever": "mild_fever", "bloating": "gastric issue",
     }
     return description_list, precautionDictionary, symptom_synonyms
 
@@ -127,7 +127,7 @@ if 'api_key_validated' not in st.session_state:
 
 # Show the API key input form if the key hasn't been validated
 if not st.session_state.api_key_validated:
-    st.subheader("Enter Your Google Gemini API Key")
+    st.subheader("Enter Your Gemini API Key")
     
     api_key_input = st.text_input("Gemini API Key", type="password", key="api_key_input")
     
@@ -146,7 +146,7 @@ if not st.session_state.api_key_validated:
         else:
             st.warning("Please enter your API key.")
 else:
-    # --- Main Chatbot Interface (runs only if API key is valid) ---
+    # --- Main Chatbot Interface ---
     try:
         genai.configure(api_key=st.session_state.api_key)
         
@@ -236,4 +236,5 @@ else:
     except Exception as e:
         st.error(f"An unexpected error occurred: {e}")
         st.button("Reload App")
+
 
